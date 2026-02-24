@@ -13,23 +13,19 @@ def register():
     email = data.get("email")
     password = data.get("password")
 
-    # 基础校验
     if not username or not email or not password:
         return jsonify({"error": "Missing required fields"}), 400
 
-    # 检查邮箱是否存在
     if User.query.filter_by(email=email).first():
         return jsonify({"error": "Email already registered"}), 400
 
-    # 检查用户名是否存在
     if User.query.filter_by(username=username).first():
         return jsonify({"error": "Username already taken"}), 400
 
-    # 创建用户
     user = User(
         username=username,
         email=email,
-        password=password  # 现在先不加密
+        password=password
     )
 
     db.session.add(user)
@@ -44,3 +40,28 @@ def register():
             "role": user.role
         }
     }), 201
+
+@auth_bp.route("/login", methods=["POST"])
+def login():
+    data = request.get_json()
+
+    email = data.get("email")
+    password = data.get("password")
+
+    if not email or not password:
+        return jsonify({"error": "Missing email or password"}), 400
+
+    user = User.query.filter_by(email=email).first()
+
+    if not user or user.password != password:
+        return jsonify({"error": "Invalid email or password"}), 401
+
+    return jsonify({
+        "message": "Login successful",
+        "user": {
+            "id": user.id,
+            "username": user.username,
+            "email": user.email,
+            "role": user.role
+        }
+    }), 200
