@@ -28,7 +28,7 @@ source venv\bin\activate
 cd backend
 pip install -r requirements.txt
 ```
-
+后面的命令都是在backend目录下输入的
 ### 配置数据库
 ```bash
 export FLASK_APP=app
