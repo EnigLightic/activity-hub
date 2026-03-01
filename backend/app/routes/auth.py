@@ -1,6 +1,7 @@
 from flask import Blueprint, request, jsonify
 from app.extensions import db
 from app.models.user import User
+from flask_jwt_extended import create_access_token,jwt_required, get_jwt_identity,get_jwt
 
 auth_bp = Blueprint("auth", __name__, url_prefix="/api/auth")
 
@@ -56,8 +57,12 @@ def login():
     if not user or user.password != password:
         return jsonify({"error": "Invalid email or password"}), 401
 
+    # 生成 token
+    access_token = create_access_token(identity=str(user.id))
+
     return jsonify({
         "message": "Login successful",
+        "access_token": access_token,
         "user": {
             "id": user.id,
             "username": user.username,
@@ -65,3 +70,31 @@ def login():
             "role": user.role
         }
     }), 200
+
+#使用JWT的黑名单机制登出
+@auth_bp.route("/logout", methods=["POST"])
+@jwt_required()
+def logout():
+    jti = get_jwt()["jti"]
+
+    from app.models.token_blocklist import TokenBlocklist
+
+    token = TokenBlocklist(jti=jti)
+    db.session.add(token)
+    db.session.commit()
+
+    return jsonify({"message": "Logout successful"}), 200
+
+#测试
+@auth_bp.route("/me", methods=["GET"])
+@jwt_required()
+def me():
+    user_id = get_jwt_identity()
+    user = User.query.get(int(user_id))
+
+    return jsonify({
+        "id": user.id,
+        "username": user.username,
+        "email": user.email,
+        "role": user.role
+    })
